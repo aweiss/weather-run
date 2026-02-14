@@ -1,6 +1,6 @@
 {
-  "name": "WeatherRun",
-  "short_name": "WeatherRun",
+  "name": "Weather2Run",
+  "short_name": "Weather2Run",
   "description": "Find the perfect day for your run based on weather conditions.",
   "start_url": "/",
   "display": "standalone",

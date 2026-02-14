@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "WeatherRun",
+  title: "Weather2Run",
   description: "Find the perfect day for your run.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "WeatherRun",
+    title: "Weather2Run",
   },
 };
 

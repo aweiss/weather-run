@@ -20,6 +20,7 @@ import { RunDay } from "@/lib/types";
 
 const STORAGE_KEY_ZIP = "weatherrun_zip";
 const STORAGE_KEY_HOUR = "weatherrun_hour";
+const STORAGE_KEY_MINUTE = "weatherrun_minute";
 const DEFAULT_HOUR = 5; // 5:30 AM -> hour 5
 const DEFAULT_MINUTE = 30;
 
@@ -33,7 +34,7 @@ export default function Home() {
   const [location, setLocation] = useState("");
   const [inputValue, setInputValue] = useState("");
   const [runHour, setRunHour] = useState(DEFAULT_HOUR);
-  const [runMinute] = useState(DEFAULT_MINUTE);
+  const [runMinute, setRunMinute] = useState(DEFAULT_MINUTE);
   const [days, setDays] = useState<RunDay[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -44,6 +45,7 @@ export default function Home() {
   useEffect(() => {
     const savedZip = localStorage.getItem(STORAGE_KEY_ZIP);
     const savedHour = localStorage.getItem(STORAGE_KEY_HOUR);
+    const savedMinute = localStorage.getItem(STORAGE_KEY_MINUTE);
     if (savedZip) {
       setLocation(savedZip);
       setInputValue(savedZip);
@@ -51,22 +53,28 @@ export default function Home() {
     if (savedHour) {
       setRunHour(parseInt(savedHour, 10));
     }
+    if (savedMinute) {
+      setRunMinute(parseInt(savedMinute, 10));
+    }
     setHydrated(true);
   }, []);
 
   const loadWeather = useCallback(
-    async (loc: string, hour: number) => {
+    async (loc: string, hour: number, minute: number) => {
       if (!loc.trim()) return;
       setLoading(true);
       setError("");
       try {
+        // Round to nearest hour for the API (Visual Crossing uses hourly data)
+        const apiHour = minute >= 30 ? (hour + 1) % 24 : hour;
         const data = await fetchWeather(loc.trim());
-        const processed = processWeatherData(data, hour);
+        const processed = processWeatherData(data, apiHour);
         setDays(processed);
         setResolvedCity(data.resolvedAddress);
         // Persist
         localStorage.setItem(STORAGE_KEY_ZIP, loc.trim());
         localStorage.setItem(STORAGE_KEY_HOUR, String(hour));
+        localStorage.setItem(STORAGE_KEY_MINUTE, String(minute));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load weather data.");
         setDays([]);
@@ -80,7 +88,7 @@ export default function Home() {
   // Auto-load on hydration if we have a saved location
   useEffect(() => {
     if (hydrated && location) {
-      loadWeather(location, runHour);
+      loadWeather(location, runHour, runMinute);
     }
   }, [hydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -88,21 +96,27 @@ export default function Home() {
     e.preventDefault();
     if (inputValue.trim()) {
       setLocation(inputValue.trim());
-      loadWeather(inputValue.trim(), runHour);
+      loadWeather(inputValue.trim(), runHour, runMinute);
     }
   };
 
-  const adjustHour = (delta: number) => {
-    const next = (runHour + delta + 24) % 24;
-    setRunHour(next);
+  const adjustTime = (delta: number) => {
+    // delta is +30 or -30 minutes
+    let totalMinutes = runHour * 60 + runMinute + delta;
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
+    totalMinutes = totalMinutes % (24 * 60);
+    const nextHour = Math.floor(totalMinutes / 60);
+    const nextMinute = totalMinutes % 60;
+    setRunHour(nextHour);
+    setRunMinute(nextMinute);
     if (location) {
-      loadWeather(location, next);
+      loadWeather(location, nextHour, nextMinute);
     }
   };
 
   const handleShare = async (day: RunDay) => {
     const text = [
-      `WeatherRun Report for ${resolvedCity}`,
+      `Weather2Run Report for ${resolvedCity}`,
       `${day.dayLabel} at ${formatRunTime(runHour, runMinute)}`,
       `Temp: ${day.temp}F / Feels Like: ${day.feelslike}F`,
       `Wind: ${day.windspeed} mph / Humidity: ${day.humidity}%`,
@@ -113,7 +127,7 @@ export default function Home() {
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: "WeatherRun Report", text });
+        await navigator.share({ title: "Weather2Run Report", text });
       } catch {
         // User cancelled share
       }
@@ -129,7 +143,7 @@ export default function Home() {
       <header className="sticky top-0 z-10 bg-dark/95 backdrop-blur-sm border-b border-white/10 px-4 pt-4 pb-3">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-lg font-bold tracking-tight">
-            WEATHER<span className="text-lime">RUN</span>
+            WEATHER<span className="text-lime">2</span>RUN
           </h1>
         </div>
 
@@ -150,7 +164,7 @@ export default function Home() {
           <span className="text-xs text-muted uppercase tracking-wider">Run Time</span>
           <div className="flex items-center gap-1 bg-card rounded-lg px-2 py-1">
             <button
-              onClick={() => adjustHour(-1)}
+              onClick={() => adjustTime(-30)}
               className="p-1 text-muted hover:text-white transition-colors"
               aria-label="Earlier"
             >
@@ -160,7 +174,7 @@ export default function Home() {
               {formatRunTime(runHour, runMinute)}
             </span>
             <button
-              onClick={() => adjustHour(1)}
+              onClick={() => adjustTime(30)}
               className="p-1 text-muted hover:text-white transition-colors"
               aria-label="Later"
             >
@@ -283,7 +297,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="px-4 py-4 text-center">
         <p className="text-[10px] text-muted/50">
-          WeatherRun &middot; Powered by Visual Crossing
+          Weather2Run &middot; Powered by Visual Crossing
         </p>
       </footer>
     </div>
