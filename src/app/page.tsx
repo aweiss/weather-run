@@ -221,14 +221,14 @@ export default function Home() {
               key={day.date}
               className={`relative rounded-xl p-4 transition-colors ${
                 day.isTopPick
-                  ? "bg-card border border-lime/30"
+                  ? "bg-card border-4 border-lime/30"
                   : "bg-card border border-white/5 hover:border-white/10"
               }`}
             >
               {/* Top Pick Badge */}
               {day.isTopPick && (
                 <div className="flex justify-center mb-3">
-                  <span className="bg-lime text-black text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
+                  <span className="bg-lime text-black text-[11px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full ring-4 ring-lime/20">
                     Top Pick
                   </span>
                 </div>
@@ -277,9 +277,9 @@ export default function Home() {
               </div>
 
               {/* Gear */}
-              <div className="flex items-start gap-2 bg-white/5 rounded-lg px-3 py-2 mb-3">
-                <Shirt className="w-3.5 h-3.5 text-lime mt-0.5 shrink-0" />
-                <p className="text-xs text-white/80 leading-relaxed">{day.gear}</p>
+              <div className="flex items-start gap-3 bg-white/5 rounded-lg px-4 py-3 mb-3">
+                <Shirt className="w-4 h-4 text-lime mt-0.5 shrink-0" />
+                <p className="text-sm text-white/80 leading-relaxed">{day.gear}</p>
               </div>
 
               {/* Share Button */}
@@ -288,7 +288,7 @@ export default function Home() {
                 className="flex items-center gap-1.5 text-xs text-muted hover:text-white transition-colors"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                Share Report
+                Share with Runner
               </button>
             </div>
           ))}
