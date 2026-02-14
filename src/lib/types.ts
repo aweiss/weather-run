@@ -6,6 +6,9 @@ export interface HourData {
   precip: number;
   precipprob: number;
   windspeed: number;
+  winddir: number;
+  uvindex: number;
+  severerisk?: number;
   conditions: string;
 }
 
@@ -19,15 +22,27 @@ export interface DayData {
   precip: number;
   precipprob: number;
   windspeed: number;
+  winddir: number;
+  uvindex: number;
+  severerisk?: number;
   conditions: string;
   sunrise: string;
   sunset: string;
   hours: HourData[];
 }
 
+export interface WeatherAlert {
+  event: string;
+  headline: string;
+  description: string;
+  ends: string;
+  onset: string;
+}
+
 export interface WeatherResponse {
   resolvedAddress: string;
   address: string;
+  alerts?: WeatherAlert[];
   days: DayData[];
 }
 
@@ -39,6 +54,9 @@ export interface RunDay {
   humidity: number;
   precipprob: number;
   windspeed: number;
+  winddir: string;
+  uvindex: number;
+  severerisk: number;
   conditions: string;
   sunrise: string;
   sunset: string;

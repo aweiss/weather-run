@@ -10,7 +10,7 @@ export async function fetchWeather(location: string): Promise<WeatherResponse> {
   }
 
   const encoded = encodeURIComponent(location);
-  const url = `${API_BASE}/${encoded}/next7days?unitGroup=us&include=days,hours&key=${key}`;
+  const url = `${API_BASE}/${encoded}/next7days?unitGroup=us&include=days,hours,alerts&key=${key}`;
 
   const res = await fetch(url);
   if (!res.ok) {
@@ -23,7 +23,25 @@ export async function fetchWeather(location: string): Promise<WeatherResponse> {
   return res.json();
 }
 
-function getHourData(day: DayData, hour: number): { temp: number; feelslike: number; humidity: number; windspeed: number; precipprob: number; conditions: string } | null {
+function degreesToCompass(deg: number): string {
+  const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  const index = Math.round(deg / 22.5) % 16;
+  return dirs[index];
+}
+
+interface HourResult {
+  temp: number;
+  feelslike: number;
+  humidity: number;
+  windspeed: number;
+  winddir: number;
+  uvindex: number;
+  severerisk: number;
+  precipprob: number;
+  conditions: string;
+}
+
+function getHourData(day: DayData, hour: number): HourResult | null {
   const padded = `${String(hour).padStart(2, "0")}:00:00`;
   const match = day.hours?.find((h) => h.datetime === padded);
   if (match) {
@@ -32,6 +50,9 @@ function getHourData(day: DayData, hour: number): { temp: number; feelslike: num
       feelslike: match.feelslike,
       humidity: match.humidity,
       windspeed: match.windspeed,
+      winddir: match.winddir ?? 0,
+      uvindex: match.uvindex ?? 0,
+      severerisk: match.severerisk ?? 0,
       precipprob: match.precipprob,
       conditions: match.conditions,
     };
@@ -87,6 +108,9 @@ export function processWeatherData(data: WeatherResponse, runHour: number): RunD
     const feelslike = hourData?.feelslike ?? day.feelslike;
     const humidity = hourData?.humidity ?? day.humidity;
     const windspeed = hourData?.windspeed ?? day.windspeed;
+    const winddir = hourData?.winddir ?? day.winddir ?? 0;
+    const uvindex = hourData?.uvindex ?? day.uvindex ?? 0;
+    const severerisk = hourData?.severerisk ?? day.severerisk ?? 0;
     const precipprob = hourData?.precipprob ?? day.precipprob;
     const conditions = hourData?.conditions ?? day.conditions;
 
@@ -102,6 +126,9 @@ export function processWeatherData(data: WeatherResponse, runHour: number): RunD
       humidity: Math.round(humidity),
       precipprob: Math.round(precipprob),
       windspeed: Math.round(windspeed),
+      winddir: degreesToCompass(winddir),
+      uvindex: Math.round(uvindex),
+      severerisk: Math.round(severerisk),
       conditions,
       sunrise: formatTime12(day.sunrise),
       sunset: formatTime12(day.sunset),

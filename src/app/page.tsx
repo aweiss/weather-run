@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Search,
-  Thermometer,
   Wind,
   Droplets,
   CloudRain,
@@ -14,9 +13,19 @@ import {
   ChevronDown,
   Shirt,
   Loader2,
+  Sun,
+  Cloud,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+  Compass,
+  ShieldAlert,
+  AlertTriangle,
+  X,
+  type LucideIcon,
 } from "lucide-react";
 import { fetchWeather, processWeatherData } from "@/lib/weather";
-import { RunDay } from "@/lib/types";
+import { RunDay, WeatherAlert } from "@/lib/types";
 
 const STORAGE_KEY_ZIP = "weatherrun_zip";
 const STORAGE_KEY_HOUR = "weatherrun_hour";
@@ -30,6 +39,33 @@ function formatRunTime(hour: number, minute: number): string {
   return `${h12}:${String(minute).padStart(2, "0")} ${ampm}`;
 }
 
+function getWeatherIcon(conditions: string): LucideIcon {
+  const c = conditions.toLowerCase();
+  if (c.includes("thunder") || c.includes("lightning")) return CloudLightning;
+  if (c.includes("snow") || c.includes("ice") || c.includes("sleet") || c.includes("freez")) return CloudSnow;
+  if (c.includes("rain") || c.includes("drizzle") || c.includes("shower")) return CloudRain;
+  if (c.includes("fog") || c.includes("mist") || c.includes("haze")) return CloudFog;
+  if (c.includes("overcast")) return Cloud;
+  if (c.includes("cloud") || c.includes("partly")) return Cloud;
+  if (c.includes("wind") || c.includes("gust")) return Wind;
+  return Sun;
+}
+
+function uvLabel(uv: number): string {
+  if (uv <= 2) return "Low";
+  if (uv <= 5) return "Mod";
+  if (uv <= 7) return "High";
+  if (uv <= 10) return "V.High";
+  return "Ext";
+}
+
+function aqiLabel(risk: number): string {
+  if (risk <= 10) return "Good";
+  if (risk <= 30) return "Mod";
+  if (risk <= 60) return "Poor";
+  return "Hazard";
+}
+
 export default function Home() {
   const [location, setLocation] = useState("");
   const [inputValue, setInputValue] = useState("");
@@ -39,6 +75,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resolvedCity, setResolvedCity] = useState("");
+  const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
+  const [alertsDismissed, setAlertsDismissed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   // Load from localStorage on mount
@@ -71,6 +109,8 @@ export default function Home() {
         const processed = processWeatherData(data, apiHour);
         setDays(processed);
         setResolvedCity(data.resolvedAddress);
+        setAlerts(data.alerts ?? []);
+        setAlertsDismissed(false);
         // Persist
         localStorage.setItem(STORAGE_KEY_ZIP, loc.trim());
         localStorage.setItem(STORAGE_KEY_HOUR, String(hour));
@@ -119,8 +159,9 @@ export default function Home() {
       `Weather2Run Report for ${resolvedCity}`,
       `${day.dayLabel} at ${formatRunTime(runHour, runMinute)}`,
       `Temp: ${day.temp}F / Feels Like: ${day.feelslike}F`,
-      `Wind: ${day.windspeed} mph / Humidity: ${day.humidity}%`,
-      `Precip: ${day.precipprob}% / ${day.conditions}`,
+      `Wind: ${day.windspeed} mph ${day.winddir} / Humidity: ${day.humidity}%`,
+      `Precip: ${day.precipprob}% / UV: ${day.uvindex} / AQI: ${aqiLabel(day.severerisk)}`,
+      `${day.conditions}`,
       `Sunrise: ${day.sunrise} / Sunset: ${day.sunset}`,
       `Gear: ${day.gear}`,
     ].join("\n");
@@ -139,6 +180,29 @@ export default function Home() {
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col">
+      {/* Weather Alerts */}
+      {!alertsDismissed && alerts.length > 0 && (
+        <div className="bg-red-600 text-white px-4 py-3 relative">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              {alerts.map((alert, i) => (
+                <p key={i} className="text-xs font-semibold leading-snug">
+                  {alert.event}{alert.headline ? ` — ${alert.headline}` : ""}
+                </p>
+              ))}
+            </div>
+            <button
+              onClick={() => setAlertsDismissed(true)}
+              className="p-0.5 hover:bg-white/20 rounded transition-colors shrink-0"
+              aria-label="Dismiss alerts"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sticky Header */}
       <header className="sticky top-0 z-10 bg-dark/95 backdrop-blur-sm border-b border-white/10 px-4 pt-4 pb-3">
         <div className="flex items-center justify-between mb-3">
@@ -221,7 +285,7 @@ export default function Home() {
               key={day.date}
               className={`relative rounded-xl p-4 transition-colors ${
                 day.isTopPick
-                  ? "bg-card border-4 border-lime/30"
+                  ? "bg-card border-4 border-[#CCFF00] shadow-[0_0_20px_#CCFF00]"
                   : "bg-card border border-white/5 hover:border-white/10"
               }`}
             >
@@ -234,18 +298,25 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Day Header */}
-              <div className="flex items-baseline justify-between mb-3">
+              {/* Day Header + Weather Icon */}
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-semibold">{day.dayLabel}</h2>
-                <span className="text-xs text-muted">{day.conditions}</span>
+                {(() => {
+                  const WeatherIcon = getWeatherIcon(day.conditions);
+                  return (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted">{day.conditions}</span>
+                      <WeatherIcon className="w-5 h-5 text-white/70" />
+                    </div>
+                  );
+                })()}
               </div>
 
-              {/* Temp Row */}
-              <div className="flex items-end gap-1 mb-4">
+              {/* Temp Row — inline feels like */}
+              <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-4xl font-bold tabular-nums">{day.temp}°</span>
-                <span className="text-sm text-muted mb-1">
-                  Feels {day.feelslike}°
-                </span>
+                <span className="text-lg text-muted/60 font-light">|</span>
+                <span className="text-sm text-muted">Feels {day.feelslike}°</span>
               </div>
 
               {/* Detail Grid */}
@@ -253,6 +324,10 @@ export default function Home() {
                 <div className="flex items-center gap-2 text-muted">
                   <Wind className="w-3.5 h-3.5 shrink-0" />
                   <span>{day.windspeed} mph</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted">
+                  <Compass className="w-3.5 h-3.5 shrink-0" />
+                  <span>{day.winddir}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted">
                   <Droplets className="w-3.5 h-3.5 shrink-0" />
@@ -263,8 +338,12 @@ export default function Home() {
                   <span>{day.precipprob}% rain</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted">
-                  <Thermometer className="w-3.5 h-3.5 shrink-0" />
-                  <span>Feels {day.feelslike}°</span>
+                  <Sun className="w-3.5 h-3.5 shrink-0" />
+                  <span>UV {day.uvindex} {uvLabel(day.uvindex)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted">
+                  <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                  <span>AQI {aqiLabel(day.severerisk)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted">
                   <Sunrise className="w-3.5 h-3.5 shrink-0" />
