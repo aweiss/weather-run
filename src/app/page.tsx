@@ -365,7 +365,7 @@ export default function Home() {
                 className="flex items-center gap-1.5 text-xs text-muted hover:text-white transition-colors"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                Share with Runner
+                Share with Another Runner
               </button>
             </div>
           ))}
