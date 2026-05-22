@@ -139,6 +139,7 @@ export function processWeatherData(data: WeatherResponse, runHour: number, runMi
       sunrise: formatTime12(day.sunrise),
       sunset: formatTime12(day.sunset),
       gear: getGearSuggestion(feelslike),
+      dogSafe: Math.round(temp) + Math.round(humidity) < 150,
       score,
       isTopPick: false,
     };

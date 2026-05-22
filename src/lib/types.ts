@@ -61,6 +61,7 @@ export interface RunDay {
   sunrise: string;
   sunset: string;
   gear: string;
+  dogSafe: boolean;
   score: number;
   isTopPick: boolean;
 }

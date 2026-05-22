@@ -21,6 +21,7 @@ import {
   Compass,
   ShieldAlert,
   AlertTriangle,
+  Dog,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -162,6 +163,7 @@ export default function Home() {
       `${day.conditions}`,
       `Sunrise: ${day.sunrise} / Sunset: ${day.sunset}`,
       `Gear: ${day.gear}`,
+      `Dog Safety: ${day.dogSafe ? "Safe for pups" : "Caution - Too hot"}`,
     ].join("\n");
 
     if (navigator.share) {
@@ -350,6 +352,12 @@ export default function Home() {
                 <div className="flex items-center gap-2 text-muted">
                   <Sunset className="w-3.5 h-3.5 shrink-0" />
                   <span>{day.sunset}</span>
+                </div>
+                <div className="flex items-center gap-2 col-span-2">
+                  <Dog className="w-3.5 h-3.5 shrink-0" style={{ color: day.dogSafe ? "#CCFF00" : "#FF0000" }} />
+                  <span style={{ color: day.dogSafe ? "#CCFF00" : "#FF0000" }} className="text-xs font-semibold">
+                    {day.dogSafe ? "Dog Safe" : "Too Hot for Dogs"}
+                  </span>
                 </div>
               </div>
 
